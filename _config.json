@@ -1,0 +1,20 @@
+{
+    "prefix": "=bops ",
+    "token": "",
+    "bots": {
+        "e": {
+            "buildscript": "ls"
+        },
+        "bot2": {
+            "buildscript": "ls"
+        }
+    },
+    "roles": [
+        "id1",
+        "id2"
+    ],
+    "users": [
+        "user1id",
+        "user2id"
+    ]
+}
