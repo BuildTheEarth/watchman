@@ -16,8 +16,6 @@ class Config:
 
     def hasPerms(self, ctx):
         for i in self.users:
-            print(ctx.author.id)
-            print(i)
             if str(ctx.author.id) == i:
                 return True
         for j in self.roles:

@@ -1,9 +1,7 @@
 import discord
-import logging
 from subprocess import Popen, PIPE
 from discord.ext import commands
 from configLoader import Config
-import subprocess
 
 config = Config("config.json")
 bot = commands.Bot(command_prefix=config.prefix)
@@ -34,8 +32,6 @@ async def logs(ctx, bot):
         return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
     result = Popen(['pm2', 'logs', bot, "--nostream", "--lines",
                    "5000"], stdout=PIPE, stderr=PIPE, shell=True).communicate()
-    print(result[1].decode('utf-8')[-4096:])
-    print(result[1].decode('utf-8'))
 
     await ctx.message.channel.send(embed=discord.Embed(title="Result", description="```\n" + result[0].decode('utf-8')[-4000:] + "```", color=0x00ff00))
 
