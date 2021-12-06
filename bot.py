@@ -17,7 +17,7 @@ async def status(ctx, bot="all"):
         cmdarray = ['pm2', 'status']
     if not config.hasPerms(ctx):
         return
-    result = subprocess.check_output(" ".join(cmdarray), shell=True)
+    result = subprocess.run(" ".join(cmdarray), shell=True, capture_output=True).stdout
 
     return await ctx.message.channel.send(embed=discord.Embed(title="Result", description="```\n" + result.decode('utf-8') + "```", color=0x00ff00))
 
@@ -29,7 +29,7 @@ async def logs(ctx, bot):
         return
     if not config.getBot(bot):
         return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
-    result = subprocess.check_output(" ".join(['pm2', 'logs', bot, "--nostream", "--lines", "5000"]), shell=True)
+    result = subprocess.run(" ".join(['pm2', 'logs', bot, "--nostream", "--lines", "5000"]), shell=True, capture_output=True).stdout
 
     await ctx.message.channel.send(embed=discord.Embed(title="Result", description="```\n" + result.decode('utf-8')[-4000:] + "```", color=0x00ff00))
 
@@ -41,7 +41,7 @@ async def start(ctx, bot):
         return
     if not config.getBot(bot):
         return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
-    result = subprocess.check_output(" ".join(['pm2', 'start', bot]), shell=True)
+    result = subprocess.run(" ".join(['pm2', 'start', bot]), shell=True, capture_output=True).stdout
 
     await ctx.message.channel.send(embed=discord.Embed(title="Result", description="```\n" + result.decode('utf-8') + "```", color=0x00ff00))
 
@@ -52,7 +52,7 @@ async def stop(ctx, bot):
         return
     if not config.getBot(bot):
         return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
-    result = subprocess.check_output(" ".join(['pm2', 'stop', bot]), shell=True)
+    result = subprocess.run(" ".join(['pm2', 'stop', bot]), shell=True, capture_output=True).stdout
 
     await ctx.message.channel.send(embed=discord.Embed(title="Result", description="```\n" + result.decode('utf-8') + "```", color=0x00ff00))
 
@@ -63,7 +63,7 @@ async def restart(ctx, bot):
         return
     if not config.getBot(bot):
         return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
-    result = subprocess.check_output(" ".join(['pm2', 'restart', bot]), shell=True)
+    result = subprocess.run(" ".join(['pm2', 'restart', bot]), shell=True, capture_output=True).stdout
 
     await ctx.message.channel.send(embed=discord.Embed(title="Result", description="```\n" + result.decode('utf-8') + "```", color=0x00ff00))
 
@@ -78,7 +78,7 @@ async def pull(ctx, bot, commit="latest"):
         return
     if not config.getBot(bot):
         return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
-    result = subprocess.check_output(" ".join(cmdargs), shell=True)
+    result = subprocess.run(" ".join(cmdargs), shell=True, capture_output=True).stdout
 
     await ctx.message.channel.send(embed=discord.Embed(title="Result", description="```\n" + result.decode('utf-8') + "```", color=0x00ff00))
 
