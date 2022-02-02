@@ -71,7 +71,7 @@ async def start(ctx, bot):
             instances += 1
     if instances > 0:
         return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="There is/are " + str(instances) + " instances already.", color=0xff0000))
-    container = client.containers.run(config.getBot(bot)['container'], detach=True)
+    container = client.containers.run(config.getBot(bot)['container'], detach=True, network_mode="host")
 
     await ctx.message.channel.send(embed=discord.Embed(title="Result", description="**Name**\n" + container.name  + "\n**Status**\n" + container.status, color=0x00ff00))
 
@@ -113,7 +113,7 @@ async def restart(ctx, bot):
         print(config.getBot(bot)['container'] + ":latest")
         if container.image.attrs['RepoTags'][0] == config.getBot(bot)['container'] + ":latest":
             container.stop()
-            client.containers.run(config.getBot(bot)['container'], detach=True)
+            client.containers.run(config.getBot(bot)['container'], detach=True , network_mode="host")
             restartnum += 1
     
     
