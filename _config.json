@@ -1,12 +1,16 @@
 {
-    "prefix": "=bops ",
+    "prefix": "=wm ",
     "token": "",
     "bots": {
-        "e": {
-            "buildscript": "ls"
+        "main-bot": {
+            "buildscript": "npm start docker.build",
+            "container": "buildtheearth/main-bot",
+            "path": "/mnt/d/sushrut-work/programming/minecraftplugin/bte/botslashcommand/slashcommandreal/main-bot"
         },
-        "bot2": {
-            "buildscript": "ls"
+        "support-bot": {
+            "buildscript": "npm run docker",
+            "container": "buildtheearth/support-bot",
+            "path": "/mnt/d/sushrut-work/programming/minecraftplugin/bte/support-bot/support-bot"
         }
     },
     "roles": [

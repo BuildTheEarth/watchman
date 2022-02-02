@@ -12,7 +12,7 @@ class Config:
         self.users = self.configFile["users"]
 
     def getBot(self, bot):
-        return bot in self.bots.keys()
+        return self.bots.get(bot)
 
     def hasPerms(self, ctx):
         for i in self.users:
