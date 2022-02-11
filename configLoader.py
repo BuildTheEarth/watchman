@@ -10,6 +10,9 @@ class Config:
         self.prefix = self.configFile["prefix"]
         self.roles = self.configFile["roles"]
         self.users = self.configFile["users"]
+        
+    def listBots(self):
+        return list(self.bots.keys())
 
     def getBot(self, bot):
         return self.bots.get(bot)

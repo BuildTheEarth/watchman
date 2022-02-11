@@ -55,7 +55,7 @@ async def logs(ctx, bot):
     
     result = instances[0].logs()
 
-    await ctx.message.channel.send(embed=discord.Embed(title="Result", description="```\n" + re.sub('\x1b\[[0-9;]*m', "", result.decode('utf-8'))[-4000:] + "```", color=0x00ff00))
+    await ctx.message.channel.send(embed=discord.Embed(title="Result", description="```\n" + re.sub(config.token, re.sub('\x1b\[[0-9;]*m', "", result.decode('utf-8'))[-4000:]) + "```", color=0x00ff00))
 
 
 @bot.command()
