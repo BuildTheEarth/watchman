@@ -1,151 +1,181 @@
-import sys
+import json
 import discord
-from subprocess import Popen, PIPE
-from discord.ext import commands
-from configLoader import Config
-import subprocess
 import docker
-import re
-from git import Repo
+import requests
+from discord.ext import commands
+
+from configLoader import Config
 
 config = Config("config.json")
 bot = commands.Bot(command_prefix=config.prefix)
 client = docker.from_env()
 
-@bot.command()
-async def status(ctx, bot="all"):
-    if not config.hasPerms(ctx):
-        return
-    
-    statusstr = "**Status**\n"
-    if bot != "all":
-        if not config.getBot(bot):
-            return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
-        for container in client.containers.list():
-            if container.image.attrs['RepoTags'][0] == config.getBot(bot)['container'] + ":latest":
-                statusstr += container.name + " (" + container.image.attrs['RepoTags'][0]+ "): " + container.status + "\n\n"
-    else:
-        for container in client.containers.list():
-            try: 
-                statusstr += container.name + " (" + container.image.attrs['RepoTags'][0]+ "): " + container.status + "\n\n"
-            except:
-                pass
+splash = """
+ __          __   _       _                           
+ \ \        / /  | |     | |                          
+  \ \  /\  / /_ _| |_ ___| |__  _ __ ___   __ _ _ __  
+   \ \/  \/ / _` | __/ __| '_ \| '_ ` _ \ / _` | '_ \ 
+    \  /\  / (_| | || (__| | | | | | | | | (_| | | | |
+     \/  \/ \__,_|\__\___|_| |_|_| |_| |_|\__,_|_| |_|
+                                                                                                          
+"""
 
-    if (statusstr == "**Status**\n"):
-         return await ctx.message.channel.send(embed=discord.Embed(title="Offline", description="All bots offline", color=0xff0000))
-
-    return await ctx.message.channel.send(embed=discord.Embed(title="Result", description=statusstr, color=0x00ff00))
+status_dict = {
+    "created": ":white_circle: Created",
+    "restarting": ":yellow_circle: Restarting",
+    "running": ":green_circle: Running",
+    "removing": ":red_circle: Removing",
+    "paused": ":white_circle: Paused",
+    "exited": ":red_circle: Exited",
+    "dead": ":red_circle: Dead"
+}
 
 
-@bot.command()
-async def logs(ctx, bot):
-
-    if not config.hasPerms(ctx):
-        return
-    if not config.getBot(bot):
-        return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
-
-    instances = []
-    for container in client.containers.list():
-        if container.image.attrs['RepoTags'][0] == config.getBot(bot)['container'] + ":latest":
-            instances.append(container)
-    
-    if len(instances) == 0:
-        return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="There are no instances of this bot.", color=0xff0000))
-    
-    result = instances[0].logs()
-
-    await ctx.message.channel.send(embed=discord.Embed(title="Result", description="```\n" + re.sub(config.token, re.sub('\x1b\[[0-9;]*m', "", result.decode('utf-8'))[-4000:]) + "```", color=0x00ff00))
+def fetch_container(name):
+    for container in client.containers.list(all=True):
+        if container.name == name and name in config.listBots():
+            return container
+    return None
 
 
-@bot.command()
-async def start(ctx, bot):
-
-    if not config.hasPerms(ctx):
-        return
-    if not config.getBot(bot):
-        return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
-    instances = 0
-    for container in client.containers.list():
-        if container.image.attrs['RepoTags'][0] == config.getBot(bot)['container'] + ":latest":
-            instances += 1
-    if instances > 0:
-        return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="There is/are " + str(instances) + " instances already.", color=0xff0000))
-    container = client.containers.run(config.getBot(bot)['container'], detach=True, network_mode="host")
-
-    await ctx.message.channel.send(embed=discord.Embed(title="Result", description="**Name**\n" + container.name  + "\n**Status**\n" + container.status, color=0x00ff00))
+def fetch_stack(name):
+    r = requests.get(
+        config.portainer_endpoint + "/stacks",
+        headers={"Authorization": "Bearer {}".format(config.portainer_token)},
+        verify=False
+    )
+    for swarm in r.json():
+        if swarm['Name'] == name:
+            return swarm
+    return None
 
 
-@bot.command()
-async def stop(ctx, bot):
-    if not config.hasPerms(ctx):
-        return
-    if not config.getBot(bot):
-        return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
+def redeploy_stack(stack):
+    body = {
+        "env": stack['Env'],
+        "repositoryAuthentication": False,
+        "repositoryPassword": "",
+        "repositoryReferenceName": "refs/heads/main",
+        "repositoryUsername": "",
+        "environmentId": 1
+    }
+    r = requests.put(
+        config.portainer_endpoint + "/stacks/{}/git/redeploy?endpointId={}".format(stack['Id'], stack['EndpointId']),
+        data=json.dumps(body),
+        headers={"Authorization": "Bearer {}".format(config.portainer_token)},
+        verify=False
+    )
+    return r
 
-    stopnum = 0
-    messageSent = await ctx.message.channel.send(embed=discord.Embed(title="Waiting..", description="Stopping containers", color=0xff0000))
-    for container in client.containers.list():
-        print(container.image.attrs['RepoTags'][0])
-        print(type(container.image))
-        print(config.getBot(bot)['container'] + ":latest")
-        if container.image.attrs['RepoTags'][0] == config.getBot(bot)['container'] + ":latest":
-            container.stop()
-            stopnum += 1
-    
-    
 
-    await messageSent.edit(embed=discord.Embed(title="Result", description="**Containers Stopped**\n" + str(stopnum), color=0x00ff00))
+def container_embed(container, title, description, color):
+    embed = discord.Embed(title=title, description=description, color=color)
+    embed.set_author(name=container, icon_url=config.getBot(container)['image'])
+    return embed
+
+
+def no_container_embed():
+    return discord.Embed(title="Error", description="No container found. Please specify a valid container.",
+                         color=0xff0000)
 
 
 @bot.command()
-async def restart(ctx, bot):
+async def status(ctx):
     if not config.hasPerms(ctx):
         return
-    if not config.getBot(bot):
-        return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
 
-    restartnum = 0
-    messageSent = await ctx.message.channel.send(embed=discord.Embed(title="Waiting..", description="Restarting containers", color=0xff0000))
-    for container in client.containers.list():
-        print(container.image.attrs['RepoTags'][0])
-        print(type(container.image))
-        print(config.getBot(bot)['container'] + ":latest")
-        if container.image.attrs['RepoTags'][0] == config.getBot(bot)['container'] + ":latest":
-            container.stop()
-            client.containers.run(config.getBot(bot)['container'], detach=True , network_mode="host")
-            restartnum += 1
-    
-    
+    statusstr = ""
+    for b in config.listBots():
+        statusstr += "**" + b + "**\n"
+        container = fetch_container(b)
+        if container:
+            statusstr += status_dict[container.status] + "\n\n"
+        else:
+            statusstr += ":white_circle: No container was found!\n\n"
 
-    await messageSent.edit(embed=discord.Embed(title="Result", description="**Containers Restarted**\n" + str(restartnum), color=0x00ff00))
+    return await ctx.message.channel.send(
+        embed=discord.Embed(title="Bot Status", description=statusstr, color=0x00ff00))
 
 
 @bot.command()
-async def pull(ctx, bot):
+async def start(ctx, bot=""):
     if not config.hasPerms(ctx):
         return
-    if not config.getBot(bot):
-        return await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Bot not found", color=0xff0000))
-    repo = Repo(config.getBot(bot)['path'])
+    container = fetch_container(bot)
+    if not container:
+        return await ctx.message.channel.send(embed=no_container_embed())
 
-    message = None
+    message = await ctx.message.channel.send(embed=container_embed(bot, "Start Container", "Starting...", 0x21304a))
+    container.start()
+    await message.edit(embed=container_embed(bot, "Start Container", "Successfully started bot.", 0x00ff00))
 
-    try:
-        assert not repo.bare
-        message = await ctx.message.channel.send(embed=discord.Embed(title="Working..", description="Pulling from github...", color=0x00ff00))
-        pullRes = repo.git.pull()
-        await message.edit(embed=discord.Embed(title="Working..", description="Pulled from github ```\n" + pullRes + "```", color=0x00ff00))
-    except:
-        message = await ctx.message.channel.send(embed=discord.Embed(title="Error", description="Repo not found, attempting container rebuild " + str(sys.exc_info()[0]), color=0xff0000))
 
-    try:
-        await message.edit(embed=discord.Embed(title="Working..", description= "Building..", color=0x00ff00))
-        buildRes = subprocess.run(config.getBot(bot)['buildscript'], shell=True, capture_output=True, cwd=config.getBot(bot)['path']).stdout
-        await message.edit(embed=discord.Embed(title="Done!", description="Rebuilt container, denote restart must be done manually! ```\n" + re.sub('\x1b\[[0-9;]*m', "", buildRes.decode('utf-8'))[-3000:] + "```", color=0x00ff00))
-    except:
-        await message.edit(embed=discord.Embed(title="Error", description="Container rebuild error: " + str(sys.exc_info()[0]), color=0xff0000))
+@bot.command()
+async def stop(ctx, bot=""):
+    if not config.hasPerms(ctx):
+        return
+    container = fetch_container(bot)
+    if not container:
+        return await ctx.message.channel.send(embed=no_container_embed())
 
-    #await message.edit(embed=discord.Embed(title="Result", description="Pulled!", color=0x00ff00))
+    message = await ctx.message.channel.send(embed=container_embed(bot, "Stop Container", "Stopping...", 0x21304a))
+    container.stop()
+    await message.edit(embed=container_embed(bot, "Stop Container", "Successfully stopped bot.", 0x00ff00))
 
+
+@bot.command()
+async def kill(ctx, bot=""):
+    if not config.hasPerms(ctx):
+        return
+    container = fetch_container(bot)
+    if not container:
+        return await ctx.message.channel.send(embed=no_container_embed())
+
+    message = await ctx.message.channel.send(embed=container_embed(bot, "Kill Container", "Killing...", 0x21304a))
+    container.kill()
+    await message.edit(embed=container_embed(bot, "Kill Container", "Successfully killed bot.", 0x00ff00))
+
+
+@bot.command()
+async def restart(ctx, bot=""):
+    if not config.hasPerms(ctx):
+        return
+    container = fetch_container(bot)
+    if not container:
+        return await ctx.message.channel.send(embed=no_container_embed())
+
+    message = await ctx.message.channel.send(embed=container_embed(bot, "Restart Container", "Restarting...", 0x21304a))
+    container.restart()
+    await message.edit(embed=container_embed(bot, "Restart Container", "Successfully restarted bot.", 0x00ff00))
+
+
+@bot.command()
+async def pull(ctx, bot=""):
+    if not config.hasPerms(ctx):
+        return
+    container = fetch_container(bot)
+    if not container:
+        return await ctx.message.channel.send(embed=no_container_embed())
+
+    stack = fetch_stack(container.name)
+    if stack is None:
+        return await ctx.message.channel.send(
+            embed=container_embed(bot, "Error", "There is no stack for " + container.name + ".", 0xff0000))
+
+    message = await ctx.message.channel.send(embed=container_embed(bot, "Pull Container", "Attempting to redeploy "
+                                                                                          "image...\nThis might take "
+                                                                                          "a while.", 0x00ff00))
+    response = redeploy_stack(stack)
+    status_message = ":white_check_mark: Successfully built new image"
+    if response.status_code != 200:
+        status_message = ":x: Error while building image"
+        status_message += "\n```" + str(json.dumps(response, indent=4)) + "\n```"
+    await message.edit(embed=container_embed(bot, "Pull Container", status_message, 0x21304a))
+
+
+print(splash)
+print("Logging into Portainer!")
+config.login_portainer()
+print("Successfully logged into Portainer!")
+print("Starting Watchman")
 bot.run(config.token)
