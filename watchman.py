@@ -1,9 +1,8 @@
 import json
 import discord
 import docker
-from discord.ext import commands
 import requests
-
+from discord.ext import commands
 from configLoader import Config
 
 splash = """
@@ -65,8 +64,7 @@ class Watchman(commands.Cog):
             "repositoryAuthentication": False,
             "repositoryPassword": "",
             "repositoryReferenceName": "refs/heads/main",
-            "repositoryUsername": "",
-            "environmentId": 1
+            "repositoryUsername": ""
         }
         r = requests.put(
             self.config.portainer_endpoint +
@@ -96,6 +94,9 @@ class Watchman(commands.Cog):
     @commands.command()
     async def help(self, ctx):
         # Shows all commands for watchman
+        if not self.config.hasPerms(ctx):
+            return
+
         embed = discord.Embed(title="Watchman Help", description="Commands:", color=0x21304a)
         embed.add_field(name=self.command_name("info"), value="Get system information.", inline=False)
         embed.add_field(name=self.command_name("status"), value="Check the status of the bots.", inline=False)
@@ -107,25 +108,37 @@ class Watchman(commands.Cog):
         return await ctx.message.channel.send(embed=embed)
 
     @commands.command()
+    async def info(self, ctx):
+        # Shows info for watchman host machine
+        if not self.config.hasPerms(ctx):
+            return
+
+        embed = discord.Embed(title="Docker Info", description="", color=0x21304a)
+        version = self.client.version()
+        embed.add_field(name="Platform", value=version['Platform']['Name'], inline=False)
+        embed.add_field(name="Version", value=version['Version'], inline=False)
+        embed.add_field(name="API Version", value=version['ApiVersion'], inline=False)
+        return await ctx.message.channel.send(embed=embed)
+
+    @commands.command()
     async def status(self, ctx):
         # Displays current status of bot containers
         if not self.config.hasPerms(ctx):
             return
 
-        statusstr = ""
+        embed = discord.Embed(title="Bot Status", description="", color=0x21304a)
         for b in self.config.listBots():
-            statusstr += "**" + b + "**\n"
             container = self.fetch_container(b)
             if container:
-                statusstr += status_dict[container.status] + "\n\n"
+                desc = status_dict[container.status] + "\n\n"
             else:
-                statusstr += ":white_circle: No container was found!\n\n"
+                desc = ":white_circle: No container was found!\n\n"
+            embed.add_field(name="**" + b + "**", value=desc, inline=False)
 
-        return await ctx.message.channel.send(
-            embed=discord.Embed(title="Bot Status", description=statusstr, color=0x00ff00))
+        return await ctx.message.channel.send(embed=embed)
 
     @commands.command()
-    async def start(self, ctx, bot):
+    async def start(self, ctx, bot=None):
         # Starts a bot by its container name
         if not self.config.hasPerms(ctx):
             return
@@ -139,7 +152,7 @@ class Watchman(commands.Cog):
         await message.edit(embed=self.container_embed(bot, "Start Container", "Successfully started bot.", 0x00ff00))
 
     @commands.command()
-    async def stop(self, ctx, bot):
+    async def stop(self, ctx, bot=None):
         # Stops a bot by its container name
         if not self.config.hasPerms(ctx):
             return
@@ -153,7 +166,7 @@ class Watchman(commands.Cog):
         await message.edit(embed=self.container_embed(bot, "Stop Container", "Successfully stopped bot.", 0x00ff00))
 
     @commands.command()
-    async def kill(self, ctx, bot):
+    async def kill(self, ctx, bot=None):
         # Kills a bot by its container name
         if not self.config.hasPerms(ctx):
             return
@@ -167,7 +180,7 @@ class Watchman(commands.Cog):
         await message.edit(embed=self.container_embed(bot, "Kill Container", "Successfully killed bot.", 0x00ff00))
 
     @commands.command()
-    async def restart(self, ctx, bot):
+    async def restart(self, ctx, bot=None):
         # Restarts a bot by its container name
         if not self.config.hasPerms(ctx):
             return
@@ -182,7 +195,7 @@ class Watchman(commands.Cog):
             embed=self.container_embed(bot, "Restart Container", "Successfully restarted bot.", 0x00ff00))
 
     @commands.command()
-    async def pull(self, ctx, bot):
+    async def pull(self, ctx, bot=None):
         # Pulls any changes from the portainer stack, then force-rebuilds using docker-compose
         if not self.config.hasPerms(ctx):
             return
