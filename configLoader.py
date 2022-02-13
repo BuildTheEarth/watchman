@@ -2,7 +2,6 @@ import json
 import discord
 import requests
 
-
 class Config:
     def __init__(self, config_file):
         self.portainer_token = None

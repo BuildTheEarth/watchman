@@ -4,6 +4,19 @@ import docker
 from discord.ext import commands
 import requests
 
+from configLoader import Config
+
+splash = """
+ __          __   _       _                           
+ \ \        / /  | |     | |                          
+  \ \  /\  / /_ _| |_ ___| |__  _ __ ___   __ _ _ __  
+   \ \/  \/ / _` | __/ __| '_ \| '_ ` _ \ / _` | '_ \ 
+    \  /\  / (_| | || (__| | | | | | | | | (_| | | | |
+     \/  \/ \__,_|\__\___|_| |_|_| |_| |_|\__,_|_| |_|
+      A minimal bot manager for BuildTheEarth™                                                                                                    
+"""
+
+
 status_dict = {
     "created": ":white_circle: Created",
     "restarting": ":yellow_circle: Restarting",
@@ -13,6 +26,11 @@ status_dict = {
     "exited": ":red_circle: Exited",
     "dead": ":red_circle: Dead"
 }
+
+
+def no_container_embed():
+    return discord.Embed(title="Error", description="No container found. Please specify a valid container.",
+                         color=0xff0000)
 
 
 class Watchman(commands.Cog):
@@ -67,9 +85,21 @@ class Watchman(commands.Cog):
             name=container, icon_url=self.config.getBot(container)['image'])
         return embed
 
-    def no_container_embed():
-        return discord.Embed(title="Error", description="No container found. Please specify a valid container.",
-                             color=0xff0000)
+    def command_name(self, name):
+        return "`" + self.config.prefix + name + "` "
+
+
+    @commands.command()
+    async def help(self, ctx):
+        embed = discord.Embed(title="Watchman Help", description="Commands:", color=0x21304a)
+        embed.add_field(name=self.command_name("info"), value="Get system information.", inline=False)
+        embed.add_field(name=self.command_name("status"), value="Check the status of the bots.", inline=False)
+        embed.add_field(name=self.command_name("start <bot>"), value="Start a bot.", inline=False)
+        embed.add_field(name=self.command_name("stop <bot>"), value="Stop a bot.", inline=False)
+        embed.add_field(name=self.command_name("kill <bot>"), value="Kill a bot.", inline=False)
+        embed.add_field(name=self.command_name("restart <bot>"), value="Start a bot.", inline=False)
+        embed.add_field(name=self.command_name("pull <bot>"), value="Pull a new image for the bot.", inline=False)
+        return await ctx.message.channel.send(embed=embed)
 
     @commands.command()
     async def status(self, ctx):
@@ -100,9 +130,10 @@ class Watchman(commands.Cog):
             return
         container = self.fetch_container(bot)
         if not container:
-            return await ctx.message.channel.send(embed=self.no_container_embed())
+            return await ctx.message.channel.send(embed=no_container_embed())
 
-        message = await ctx.message.channel.send(embed=self.container_embed(bot, "Start Container", "Starting...", 0x21304a))
+        message = await ctx.message.channel.send(
+            embed=self.container_embed(bot, "Start Container", "Starting...", 0x21304a))
         container.start()
         await message.edit(embed=self.container_embed(bot, "Start Container", "Successfully started bot.", 0x00ff00))
 
@@ -115,9 +146,10 @@ class Watchman(commands.Cog):
             return
         container = self.fetch_container(bot)
         if not container:
-            return await ctx.message.channel.send(embed=self.no_container_embed())
+            return await ctx.message.channel.send(embed=no_container_embed())
 
-        message = await ctx.message.channel.send(embed=self.container_embed(bot, "Stop Container", "Stopping...", 0x21304a))
+        message = await ctx.message.channel.send(
+            embed=self.container_embed(bot, "Stop Container", "Stopping...", 0x21304a))
         container.stop()
         await message.edit(embed=self.container_embed(bot, "Stop Container", "Successfully stopped bot.", 0x00ff00))
 
@@ -130,9 +162,10 @@ class Watchman(commands.Cog):
             return
         container = self.fetch_container(bot)
         if not container:
-            return await ctx.message.channel.send(embed=self.no_container_embed())
+            return await ctx.message.channel.send(embed=no_container_embed())
 
-        message = await ctx.message.channel.send(embed=self.container_embed(bot, "Kill Container", "Killing...", 0x21304a))
+        message = await ctx.message.channel.send(
+            embed=self.container_embed(bot, "Kill Container", "Killing...", 0x21304a))
         container.kill()
         await message.edit(embed=self.container_embed(bot, "Kill Container", "Successfully killed bot.", 0x00ff00))
 
@@ -145,11 +178,13 @@ class Watchman(commands.Cog):
             return
         container = self.fetch_container(bot)
         if not container:
-            return await ctx.message.channel.send(embed=self.no_container_embed())
+            return await ctx.message.channel.send(embed=no_container_embed())
 
-        message = await ctx.message.channel.send(embed=self.container_embed(bot, "Restart Container", "Restarting...", 0x21304a))
+        message = await ctx.message.channel.send(
+            embed=self.container_embed(bot, "Restart Container", "Restarting...", 0x21304a))
         container.restart()
-        await message.edit(embed=self.container_embed(bot, "Restart Container", "Successfully restarted bot.", 0x00ff00))
+        await message.edit(
+            embed=self.container_embed(bot, "Restart Container", "Successfully restarted bot.", 0x00ff00))
 
     @commands.command()
     async def pull(self, ctx, bot=""):
@@ -160,20 +195,31 @@ class Watchman(commands.Cog):
             return
         container = self.fetch_container(bot)
         if not container:
-            return await ctx.message.channel.send(embed=self.no_container_embed())
+            return await ctx.message.channel.send(embed=no_container_embed())
 
+        self.config.login_portainer()
         stack = self.fetch_stack(container.name)
         if stack is None:
             return await ctx.message.channel.send(
                 embed=self.container_embed(bot, "Error", "There is no stack for " + container.name + ".", 0xff0000))
 
-        message = await ctx.message.channel.send(embed=self.container_embed(bot, "Pull Container", "Attempting to redeploy "
-                                                                            "image...\nThis might take "
-                                                                            "a while.", 0x00ff00))
+        message = await ctx.message.channel.send(
+            embed=self.container_embed(bot, "Pull Container", "Attempting to redeploy "
+                                                              "image...\nThis might take "
+                                                              "a while.", 0x00ff00))
         response = self.redeploy_stack(stack)
         status_message = ":white_check_mark: Successfully built new image"
         if response.status_code != 200:
             status_message = ":x: Error while building image"
             status_message += "\n```" + \
-                str(json.dumps(response, indent=4)) + "\n```"
+                              str(json.dumps(response, indent=4)) + "\n```"
         await message.edit(embed=self.container_embed(bot, "Pull Container", status_message, 0x21304a))
+
+config = Config("config.json")
+bot = commands.Bot(command_prefix=config.prefix)
+bot.remove_command("help")
+bot.add_cog(Watchman(bot, config))
+
+print(splash)
+print("Starting Watchman")
+bot.run(config.token)
