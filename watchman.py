@@ -16,7 +16,6 @@ splash = """
       A minimal bot manager for BuildTheEarth™                                                                                                    
 """
 
-
 status_dict = {
     "created": ":white_circle: Created",
     "restarting": ":yellow_circle: Restarting",
@@ -41,6 +40,8 @@ class Watchman(commands.Cog):
         self.client = docker.from_env()
 
     def fetch_container(self, name):
+        if name is None:
+            return None
         for container in self.client.containers.list(all=True):
             if container.name == name and name in self.config.listBots():
                 return container
@@ -88,9 +89,13 @@ class Watchman(commands.Cog):
     def command_name(self, name):
         return "`" + self.config.prefix + name + "` "
 
+    @commands.Cog.listener(name='on_command')
+    async def log(self, ctx):
+        print(f'[{ctx.guild.name}] {ctx.author} ran \'{ctx.command}\' command.')
 
     @commands.command()
     async def help(self, ctx):
+        # Shows all commands for watchman
         embed = discord.Embed(title="Watchman Help", description="Commands:", color=0x21304a)
         embed.add_field(name=self.command_name("info"), value="Get system information.", inline=False)
         embed.add_field(name=self.command_name("status"), value="Check the status of the bots.", inline=False)
@@ -103,9 +108,7 @@ class Watchman(commands.Cog):
 
     @commands.command()
     async def status(self, ctx):
-        '''
-        Get Status of all containers.
-        '''
+        # Displays current status of bot containers
         if not self.config.hasPerms(ctx):
             return
 
@@ -122,10 +125,8 @@ class Watchman(commands.Cog):
             embed=discord.Embed(title="Bot Status", description=statusstr, color=0x00ff00))
 
     @commands.command()
-    async def start(self, ctx, bot=""):
-        '''
-        Start a bot.
-        '''
+    async def start(self, ctx, bot):
+        # Starts a bot by its container name
         if not self.config.hasPerms(ctx):
             return
         container = self.fetch_container(bot)
@@ -138,10 +139,8 @@ class Watchman(commands.Cog):
         await message.edit(embed=self.container_embed(bot, "Start Container", "Successfully started bot.", 0x00ff00))
 
     @commands.command()
-    async def stop(self, ctx, bot=""):
-        '''
-        Stop a bot.
-        '''
+    async def stop(self, ctx, bot):
+        # Stops a bot by its container name
         if not self.config.hasPerms(ctx):
             return
         container = self.fetch_container(bot)
@@ -154,10 +153,8 @@ class Watchman(commands.Cog):
         await message.edit(embed=self.container_embed(bot, "Stop Container", "Successfully stopped bot.", 0x00ff00))
 
     @commands.command()
-    async def kill(self, ctx, bot=""):
-        '''
-        Ya know sometimes you just gotta.
-        '''
+    async def kill(self, ctx, bot):
+        # Kills a bot by its container name
         if not self.config.hasPerms(ctx):
             return
         container = self.fetch_container(bot)
@@ -170,10 +167,8 @@ class Watchman(commands.Cog):
         await message.edit(embed=self.container_embed(bot, "Kill Container", "Successfully killed bot.", 0x00ff00))
 
     @commands.command()
-    async def restart(self, ctx, bot=""):
-        '''
-        Restart a bot.
-        '''
+    async def restart(self, ctx, bot):
+        # Restarts a bot by its container name
         if not self.config.hasPerms(ctx):
             return
         container = self.fetch_container(bot)
@@ -187,10 +182,8 @@ class Watchman(commands.Cog):
             embed=self.container_embed(bot, "Restart Container", "Successfully restarted bot.", 0x00ff00))
 
     @commands.command()
-    async def pull(self, ctx, bot=""):
-        '''
-        Pull a bot (Auto restarts).
-        '''
+    async def pull(self, ctx, bot):
+        # Pulls any changes from the portainer stack, then force-rebuilds using docker-compose
         if not self.config.hasPerms(ctx):
             return
         container = self.fetch_container(bot)
@@ -214,6 +207,7 @@ class Watchman(commands.Cog):
             status_message += "\n```" + \
                               str(json.dumps(response, indent=4)) + "\n```"
         await message.edit(embed=self.container_embed(bot, "Pull Container", status_message, 0x21304a))
+
 
 config = Config("config.json")
 bot = commands.Bot(command_prefix=config.prefix)
