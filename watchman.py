@@ -58,12 +58,12 @@ class Watchman(commands.Cog):
                 return swarm
         return None
 
-    def redeploy_stack(self, stack):
+    def redeploy_stack(self, stack, branch):
         body = {
             "env": stack['Env'],
             "repositoryAuthentication": False,
             "repositoryPassword": "",
-            "repositoryReferenceName": "refs/heads/main",
+            "repositoryReferenceName": "refs/heads/" + branch,
             "repositoryUsername": ""
         }
         r = requests.put(
@@ -213,7 +213,8 @@ class Watchman(commands.Cog):
             embed=self.container_embed(bot, "Pull Container", "Attempting to redeploy "
                                                               "image...\nThis might take "
                                                               "a while.", 0x00ff00))
-        response = self.redeploy_stack(stack)
+        branch = self.config.getBot(bot)['branch']
+        response = self.redeploy_stack(stack, branch)
         status_message = ":white_check_mark: Successfully built new image"
         if response.status_code != 200:
             status_message = ":x: Error while building image"
