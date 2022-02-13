@@ -218,7 +218,7 @@ class Watchman(commands.Cog):
         if response.status_code != 200:
             status_message = ":x: Error while building image"
             status_message += "\n```" + \
-                              str(json.dumps(response, indent=4)) + "\n```"
+                              str(response) + "\n```"
         await message.edit(embed=self.container_embed(bot, "Pull Container", status_message, 0x21304a))
 
 
