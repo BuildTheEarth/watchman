@@ -1,8 +1,7 @@
-import json
 import discord
 import docker
-import requests
 from discord.ext import commands
+
 from configLoader import Config
 
 splash = """
@@ -22,7 +21,8 @@ status_dict = {
     "removing": ":red_circle: Removing",
     "paused": ":white_circle: Paused",
     "exited": ":red_circle: Exited",
-    "dead": ":red_circle: Dead"
+    "dead": ":red_circle: Dead",
+    "none": ":white_circle: No container was found!"
 }
 
 
@@ -46,42 +46,11 @@ class Watchman(commands.Cog):
                 return container
         return None
 
-    def fetch_stack(self, name):
-        r = requests.get(
-            self.config.portainer_endpoint + "/stacks",
-            headers={"Authorization": "Bearer {}".format(
-                self.config.portainer_token)},
-            verify=False
-        )
-        for swarm in r.json():
-            if swarm['Name'] == name:
-                return swarm
-        return None
-
-    def redeploy_stack(self, stack, branch):
-        body = {
-            "env": stack['Env'],
-            "repositoryAuthentication": False,
-            "repositoryPassword": "",
-            "repositoryReferenceName": "refs/heads/" + branch,
-            "repositoryUsername": ""
-        }
-        r = requests.put(
-            self.config.portainer_endpoint +
-            "/stacks/{}/git/redeploy?endpointId={}".format(
-                stack['Id'], stack['EndpointId']),
-            data=json.dumps(body),
-            headers={"Authorization": "Bearer {}".format(
-                self.config.portainer_token)},
-            verify=False
-        )
-        return r
-
     def container_embed(self, container, title, description, color):
         embed = discord.Embed(
             title=title, description=description, color=color)
         embed.set_author(
-            name=container, icon_url=self.config.getBot(container)['image'])
+            name=container, icon_url=self.config.getBot(container)['icon'])
         return embed
 
     def command_name(self, name):
@@ -196,31 +165,52 @@ class Watchman(commands.Cog):
 
     @commands.command()
     async def pull(self, ctx, bot=None):
-        # Pulls any changes from the portainer stack, then force-rebuilds using docker-compose
+        # Pulls any changes from the registry, and creates a new container
         if not self.config.hasPerms(ctx):
             return
-        container = self.fetch_container(bot)
-        if not container:
+        bot_info = self.config.getBot(bot)
+        if bot_info is None:
             return await ctx.message.channel.send(embed=no_container_embed())
 
-        self.config.login_portainer()
-        stack = self.fetch_stack(container.name)
-        if stack is None:
-            return await ctx.message.channel.send(
-                embed=self.container_embed(bot, "Error", "There is no stack for " + container.name + ".", 0xff0000))
-
-        message = await ctx.message.channel.send(
-            embed=self.container_embed(bot, "Pull Container", "Attempting to redeploy "
-                                                              "image...\nThis might take "
-                                                              "a while.", 0x00ff00))
-        branch = self.config.getBot(bot)['branch']
-        response = self.redeploy_stack(stack, branch)
-        status_message = ":white_check_mark: Successfully built new image"
-        if response.status_code != 200:
-            status_message = ":x: Error while building image"
-            status_message += "\n```" + \
-                              str(response) + "\n```"
-        await message.edit(embed=self.container_embed(bot, "Pull Container", status_message, 0x21304a))
+        container = self.fetch_container(bot)
+        image = bot_info['image']
+        message = await ctx.message.channel.send(embed=self.container_embed(bot, "Pull Container", "Stopping: "
+                                                                                                   ":hourglass"
+                                                                                                   ":\nPulling: "
+                                                                                                   ":black_small_square:\nStarting: :black_small_square:",
+                                                                            0x21304a))
+        try:
+            if container is not None:
+                container.stop()
+                container.remove()
+            await message.edit(embed=self.container_embed(bot, "Pull Container", "Stopping: :white_check_mark"
+                                                                                 ":\nPulling: :hourglass:\nStarting: "
+                                                                                 ":black_small_square:", 0x21304a))
+            self.client.images.pull(repository=image, tag="latest")
+            await message.edit(embed=self.container_embed(bot, "Pull Container", "Stopping: :white_check_mark"
+                                                                                 ":\nPulling: "
+                                                                                 ":white_check_mark:\nStarting: "
+                                                                                 ":hourglass:", 0x21304a))
+            volumes = {}
+            for k in bot_info['volumes']:
+                volumes[k] = {
+                    "bind": bot_info['volumes'][k],
+                    "mode": "rw"
+                }
+                labels = {
+                    "io.portainer.accesscontrol.teams": self.config.bot_group
+                }
+            self.client.containers.run(name=bot, image=image, network=bot_info['network'], volumes=volumes, labels=labels, detach=True)
+            await message.edit(embed=self.container_embed(bot, "Pull Container", "Stopping: :white_check_mark"
+                                                                                 ":\nPulling: "
+                                                                                 ":white_check_mark:\nStarting: "
+                                                                                 ":white_check_mark:\n\n"
+                                                                                 ":white_check_mark: Successfully "
+                                                                                 "built new image", 0x21304a))
+        except Exception as err:
+            await message.edit(embed=self.container_embed(bot, "Pull Container", ":x: Failed to pull new "
+                                                                                 "container.\n```" + str(err) +
+                                                          "```", 0x21304a))
 
 
 config = Config("config.json")

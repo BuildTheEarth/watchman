@@ -1,17 +1,23 @@
 {
     "prefix": "=wm ",
     "token": "",
-    "portainerEndpoint": "",
-    "portainerUsername": "",
-    "portainerPassword": "",
+    "botGroupId": "",
     "bots": {
         "main-bot": {
-            "image": "",
-            "branch": "main"
+            "icon": "",
+            "image": "buildtheearth/main-bot",
+            "network": "bot-network",
+            "volumes": {
+                "/etc/buildtheearth/main-bot/config/config.json5": "/etc/buildtheearth/main-bot/config/config.json5"
+            }
         },
         "support-bot": {
-            "image": "",
-            "branch": "master"
+            "icon": "",
+            "image": "buildtheearth/support-bot",
+            "network": "bot-network",
+            "volumes": {
+                "/etc/buildtheearth/support-bot/config.ini": "/etc/buildtheearth/support-bot/config.ini"
+            }
         }
     },
     "roles": [
