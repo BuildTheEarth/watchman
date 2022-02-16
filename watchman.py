@@ -192,15 +192,18 @@ class Watchman(commands.Cog):
                                                                                  ":white_check_mark:\nStarting: "
                                                                                  ":hourglass:", 0x21304a))
             volumes = {}
+            ports = {}
             for k in bot_info['volumes']:
                 volumes[k] = {
                     "bind": bot_info['volumes'][k],
                     "mode": "rw"
                 }
-                labels = {
-                    "io.portainer.accesscontrol.teams": self.config.bot_group
-                }
-            self.client.containers.run(name=bot, image=image, network=bot_info['network'], volumes=volumes, labels=labels, detach=True)
+            for k in bot_info['ports']:
+                ports[k] = bot_info['ports'][k]
+            labels = {
+                "io.portainer.accesscontrol.teams": self.config.bot_group
+            }
+            self.client.containers.run(name=bot, image=image, network=bot_info['network'], volumes=volumes, labels=labels, ports=ports, detach=True)
             await message.edit(embed=self.container_embed(bot, "Pull Container", "Stopping: :white_check_mark"
                                                                                  ":\nPulling: "
                                                                                  ":white_check_mark:\nStarting: "

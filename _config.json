@@ -9,6 +9,8 @@
             "network": "bot-network",
             "volumes": {
                 "/etc/buildtheearth/main-bot/config/config.json5": "/etc/buildtheearth/main-bot/config/config.json5"
+            },
+            "ports": {
             }
         },
         "support-bot": {
@@ -17,6 +19,9 @@
             "network": "bot-network",
             "volumes": {
                 "/etc/buildtheearth/support-bot/config.ini": "/etc/buildtheearth/support-bot/config.ini"
+            },
+            "ports": {
+                "8890/tcp": "8890/tcp"
             }
         }
     },
