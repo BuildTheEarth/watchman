@@ -11,7 +11,8 @@
                 "/etc/buildtheearth/main-bot/config/config.json5": "/etc/buildtheearth/main-bot/config/config.json5"
             },
             "ports": {
-            }
+            },
+            "restart_policy": "unless-stopped"
         },
         "support-bot": {
             "icon": "",
@@ -22,7 +23,8 @@
             },
             "ports": {
                 "8890/tcp": "8890/tcp"
-            }
+            },
+            "restart_policy": "unless-stopped"
         }
     },
     "roles": [
