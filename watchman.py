@@ -194,9 +194,9 @@ class Watchman(commands.Cog):
             volumes = {}
             ports = {}
             restart_policy = {
-                "Name": bot_info['restart_policy'],
-                "MaximumRetryCount": 5
+                "Name": bot_info['restart_policy']
             }
+            if bot_info['restart_policy'] == "never": restart_policy = None
             for k in bot_info['volumes']:
                 volumes[k] = {
                     "bind": bot_info['volumes'][k],
