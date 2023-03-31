@@ -1,5 +1,5 @@
 import json
-import discord
+import interactions
 
 
 class Config:
@@ -21,10 +21,5 @@ class Config:
     def hasPerms(self, ctx):
         for i in self.users:
             if str(ctx.author.id) == i:
-                return True
-        for j in self.roles:
-            role = discord.utils.find(
-                lambda r: r.id == j, ctx.message.guild.roles)
-            if role in ctx.message.author.roles:
                 return True
         return False
