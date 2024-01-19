@@ -25,6 +25,7 @@ class Watchman(interactions.Extension):
         self.bot = bot
         self.config = config
         self.client = docker.from_env()
+        self.base = SlashCommand(name="wm", description=generic_reason)
 
     def fetch_container(self, name):
         if name is None:
@@ -44,20 +45,14 @@ class Watchman(interactions.Extension):
     def command_name(self, name):
         return "`" + self.config.prefix + name + "` "
     
-    @interactions.extension_listener(name='on_command')
-    async def log(self, ctx: interactions.CommandContext):
+    @interactions.listener()
+    async def log(self, ctx: interactions.InteractionCreate):
         print(f'[{ctx.guild.name}] {ctx.author.name} ran \'{ctx.data.options[0].name}\' command.')
-    
-    @interactions.extension_command(name="wm", description=generic_reason)
-    async def parent(self, ctx: interactions.CommandContext):
-        if not self.config.hasPerms(ctx):
-            embed = interactions.Embed(description="This is an extremely confidential bot for confidential purposes, scram.", color=0x21304a)
-            await ctx.send(embeds=[embed], ephemeral=True)
-            return interactions.StopCommand
-        pass
 
-    @parent.subcommand(name="help", description=generic_reason)
-    async def help(self, ctx: interactions.CommandContext):
+
+    @self.base.subcommand(sub_command_name="help", sub_command_description=generic_reason)
+    @interactions.check(self.config.hasPerms)
+    async def help(self, ctx: interactions.SlashContext):
         # Shows all commands for watchman
 
         embed = interactions.Embed(title="Watchman Help", description="Commands:", color=0x21304a)
@@ -70,8 +65,9 @@ class Watchman(interactions.Extension):
         embed.add_field(name=self.command_name("pull <bot>"), value="Pull a new image for the bot.", inline=False)
         return await ctx.send(embeds=[embed])
 
-    @parent.subcommand(name="info", description=generic_reason)
-    async def info(self, ctx: interactions.CommandContext):
+    @self.base.subcommand(sub_command_name="info", sub_command_description=generic_reason)
+    @interactions.check(self.config.hasPerms)
+    async def info(self, ctx: interactions.SlashContext):
         # Shows info for watchman host machine
 
         embed = interactions.Embed(title="Docker Info", description="", color=0x21304a)
@@ -81,8 +77,9 @@ class Watchman(interactions.Extension):
         embed.add_field(name="API Version", value=version['ApiVersion'], inline=False)
         return await ctx.send(embeds=[embed])
 
-    @parent.subcommand(name="status", description=generic_reason)
-    async def status(self, ctx: interactions.CommandContext):
+    @self.base.subcommand(sub_command_name="status", sub_command_description=generic_reason)
+    @interactions.check(self.config.hasPerms)
+    async def status(self, ctx: interactions.SlashContext):
         # Displays current status of bot containers
         embed = interactions.Embed(title="Bot Status", description="", color=0x21304a)
         for b in self.config.listBots():
@@ -95,9 +92,9 @@ class Watchman(interactions.Extension):
 
         return await ctx.send(embeds=[embed])
 
-    @parent.subcommand(name="start", description=generic_reason)
-    @interactions.option()
-    async def start(self, ctx: interactions.CommandContext, bot:str):
+    @self.base.subcommand(sub_command_name="start", sub_command_description=generic_reason)
+    @interactions.check(self.config.hasPerms)
+    async def start(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Starts a bot by its container name
         container = self.fetch_container(bot)
         if not container:
@@ -108,9 +105,9 @@ class Watchman(interactions.Extension):
         container.start()
         await message.edit(embeds=[self.container_embed(bot, "Start Container", "Successfully started bot.", 0x00ff00)])
 
-    @parent.subcommand(name="stop", description=generic_reason)
-    @interactions.option()
-    async def stop(self, ctx: interactions.CommandContext, bot:str):
+    @self.base.subcommand(sub_command_name="stop", sub_command_description=generic_reason)
+    @interactions.check(self.config.hasPerms)
+    async def stop(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Stops a bot by its container name
         container = self.fetch_container(bot)
         if not container:
@@ -121,9 +118,9 @@ class Watchman(interactions.Extension):
         container.stop()
         await message.edit(embeds=[self.container_embed(bot, "Stop Container", "Successfully stopped bot.", 0x00ff00)])
 
-    @parent.subcommand(name="kill", description=generic_reason)
-    @interactions.option()
-    async def kill(self, ctx: interactions.CommandContext, bot:str):
+    @self.base.subcommand(sub_command_name="kill", sub_command_description=generic_reason)
+    @interactions.check(self.config.hasPerms)
+    async def kill(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Kills a bot by its container name
         container = self.fetch_container(bot)
         if not container:
@@ -134,9 +131,9 @@ class Watchman(interactions.Extension):
         container.kill()
         await message.edit(embeds=[self.container_embed(bot, "Kill Container", "Successfully killed bot.", 0x00ff00)])
 
-    @parent.subcommand(name="restart", description=generic_reason)
-    @interactions.option()
-    async def restart(self, ctx: interactions.CommandContext, bot:str):
+    @self.base.subcommand(sub_command_name="restart", sub_command_description=generic_reason)
+    @interactions.check(self.config.hasPerms)
+    async def restart(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Restarts a bot by its container name
         container = self.fetch_container(bot)
         if not container:
@@ -148,9 +145,9 @@ class Watchman(interactions.Extension):
         await message.edit(
             embeds=[self.container_embed(bot, "Restart Container", "Successfully restarted bot.", 0x00ff00)])
 
-    @parent.subcommand(name="pull", description=generic_reason)
-    @interactions.option()
-    async def pull(self, ctx: interactions.CommandContext, bot:str):
+    @self.base.subcommand(sub_command_name="pull", sub_command_description=generic_reason)
+    @interactions.check(self.config.hasPerms)
+    async def pull(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Pulls any changes from the registry, and creates a new container
         bot_info = self.config.getBot(bot)
         if bot_info is None:
