@@ -45,9 +45,9 @@ class Watchman(interactions.Extension):
     def command_name(self, name):
         return "`" + self.config.prefix + name + "` "
     
-    @interactions.listen()
-    async def log(self, ctx: interactions.InteractionCreate):
-        print(f'[{ctx.guild.name}] {ctx.author.name} ran \'{ctx.data.options[0].name}\' command.')
+    #interactions.listen()
+    #async def log(self, ctx: interactions.InteractionCreate):
+        #print(f'[{ctx.guild.name}] {ctx.author.name} ran \'{ctx.data.options[0].name}\' command.')
 
 
     @self.base.subcommand(sub_command_name="help", sub_command_description=generic_reason)
