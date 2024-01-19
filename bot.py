@@ -200,5 +200,5 @@ class Watchman(interactions.Extension):
                                                                                  "container.\n```" + str(err) +
                                                           "```", 0x21304a)])
             
-def setup(client, config):
-    Watchman(client, config)
+def setup(client, conf=None):
+    Watchman(client, conf)
