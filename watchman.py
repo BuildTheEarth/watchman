@@ -15,7 +15,7 @@ splash = """
 
 config = Config("config.json")
 bot = interactions.Client(token=config.token)
-bot.load("bot", None, config)
+bot.load_extension("bot", None, config)
 
 print(splash)
 print("Starting Watchman")
