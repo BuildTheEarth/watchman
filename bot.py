@@ -19,10 +19,13 @@ def no_container_embed():
                          color=0xff0000)
 
 base = interactions.SlashCommand(name="wm", description=generic_reason)
+conf = None
 
 class Watchman(interactions.Extension):
 
     def __init__(self, bot, config):
+        global conf
+        conf = config
         self.bot = bot
         self.config = config
         self.client = docker.from_env()
