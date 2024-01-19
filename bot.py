@@ -18,7 +18,7 @@ def no_container_embed():
     return interactions.Embed(title="Error", description="No container found. Please specify a valid container.",
                          color=0xff0000)
 
-base = SlashCommand(name="wm", description=generic_reason)
+base = interactions.SlashCommand(name="wm", description=generic_reason)
 
 class Watchman(interactions.Extension):
 
