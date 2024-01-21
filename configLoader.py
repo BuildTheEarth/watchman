@@ -23,3 +23,8 @@ class Config:
             if str(ctx.author.id) == i:
                 return True
         return False
+    async def hasPermsAsync(self, ctx):
+        for i in self.users:
+            if str(ctx.author.id) == i:
+                return True
+        return False
