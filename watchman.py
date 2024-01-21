@@ -1,5 +1,4 @@
 import interactions
-
 from configLoader import Config
 
 splash = """
@@ -15,7 +14,7 @@ splash = """
 
 config = Config("config.json")
 bot = interactions.Client(token=config.token)
-bot.load_extension("bot", conf=config)
+bot.load_extension("bot")
 
 print(splash)
 print("Starting Watchman")
