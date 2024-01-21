@@ -1,5 +1,7 @@
 import interactions
 import docker
+import interactions
+from configLoader import Config
 
 status_dict = {
     "created": ":white_circle: Created",
@@ -19,22 +21,19 @@ def no_container_embed():
                          color=0xff0000)
 
 base = interactions.SlashCommand(name="wm", description=generic_reason)
-conf = None
+config = Config("config.json")
 
 class Watchman(interactions.Extension):
 
-    def __init__(self, bot, config):
-        global conf
-        conf = config
+    def __init__(self, bot):
         self.bot = bot
-        self.config = config
         self.client = docker.from_env()
 
     def fetch_container(self, name):
         if name is None:
             return None
         for container in self.client.containers.list(all=True):
-            if container.name == name and name in self.config.listBots():
+            if container.name == name and name in config.listBots():
                 return container
         return None
 
@@ -42,11 +41,11 @@ class Watchman(interactions.Extension):
         embed = interactions.Embed(
             title=title, description=description, color=color)
         embed.set_author(
-            name=container, icon_url=self.config.getBot(container)['icon'])
+            name=container, icon_url=config.getBot(container)['icon'])
         return embed
 
     def command_name(self, name):
-        return "`" + self.config.prefix + name + "` "
+        return "`" + config.prefix + name + "` "
     
     #interactions.listen()
     #async def log(self, ctx: interactions.InteractionCreate):
@@ -54,7 +53,7 @@ class Watchman(interactions.Extension):
 
 
     @base.subcommand(sub_cmd_name="help", sub_cmd_description=generic_reason)
-    @interactions.check(conf.hasPerms)
+    @interactions.check(config.hasPerms)
     async def help(self, ctx: interactions.SlashContext):
         # Shows all commands for watchman
 
@@ -69,7 +68,7 @@ class Watchman(interactions.Extension):
         return await ctx.send(embeds=[embed])
 
     @base.subcommand(sub_cmd_name="info", sub_cmd_description=generic_reason)
-    @interactions.check(conf.hasPerms)
+    @interactions.check(config.hasPerms)
     async def info(self, ctx: interactions.SlashContext):
         # Shows info for watchman host machine
 
@@ -81,11 +80,11 @@ class Watchman(interactions.Extension):
         return await ctx.send(embeds=[embed])
 
     @base.subcommand(sub_cmd_name="status", sub_cmd_description=generic_reason)
-    @interactions.check(conf.hasPerms)
+    @interactions.check(config.hasPerms)
     async def status(self, ctx: interactions.SlashContext):
         # Displays current status of bot containers
         embed = interactions.Embed(title="Bot Status", description="", color=0x21304a)
-        for b in self.config.listBots():
+        for b in config.listBots():
             container = self.fetch_container(b)
             if container:
                 desc = status_dict[container.status] + "\n\n"
@@ -96,7 +95,7 @@ class Watchman(interactions.Extension):
         return await ctx.send(embeds=[embed])
 
     @base.subcommand(sub_cmd_name="start", sub_cmd_description=generic_reason)
-    @interactions.check(conf.hasPerms)
+    @interactions.check(config.hasPerms)
     async def start(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Starts a bot by its container name
         container = self.fetch_container(bot)
@@ -109,7 +108,7 @@ class Watchman(interactions.Extension):
         await message.edit(embeds=[self.container_embed(bot, "Start Container", "Successfully started bot.", 0x00ff00)])
 
     @base.subcommand(sub_cmd_name="stop", sub_cmd_description=generic_reason)
-    @interactions.check(conf.hasPerms)
+    @interactions.check(config.hasPerms)
     async def stop(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Stops a bot by its container name
         container = self.fetch_container(bot)
@@ -122,7 +121,7 @@ class Watchman(interactions.Extension):
         await message.edit(embeds=[self.container_embed(bot, "Stop Container", "Successfully stopped bot.", 0x00ff00)])
 
     @base.subcommand(sub_cmd_name="kill", sub_cmd_description=generic_reason)
-    @interactions.check(conf.hasPerms)
+    @interactions.check(config.hasPerms)
     async def kill(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Kills a bot by its container name
         container = self.fetch_container(bot)
@@ -135,7 +134,7 @@ class Watchman(interactions.Extension):
         await message.edit(embeds=[self.container_embed(bot, "Kill Container", "Successfully killed bot.", 0x00ff00)])
 
     @base.subcommand(sub_cmd_name="restart", sub_cmd_description=generic_reason)
-    @interactions.check(conf.hasPerms)
+    @interactions.check(config.hasPerms)
     async def restart(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Restarts a bot by its container name
         container = self.fetch_container(bot)
@@ -149,10 +148,10 @@ class Watchman(interactions.Extension):
             embeds=[self.container_embed(bot, "Restart Container", "Successfully restarted bot.", 0x00ff00)])
 
     @base.subcommand(sub_cmd_name="pull", sub_cmd_description=generic_reason)
-    @interactions.check(conf.hasPerms)
+    @interactions.check(config.hasPerms)
     async def pull(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Pulls any changes from the registry, and creates a new container
-        bot_info = self.config.getBot(bot)
+        bot_info = config.getBot(bot)
         if bot_info is None:
             return await ctx.send(embeds=[no_container_embed()])
 
@@ -189,7 +188,7 @@ class Watchman(interactions.Extension):
             for k in bot_info['ports']:
                 ports[k] = bot_info['ports'][k]
             labels = {
-                "io.portainer.accesscontrol.teams": self.config.bot_group
+                "io.portainer.accesscontrol.teams": config.bot_group
             }
             self.client.containers.run(name=bot, image=image, network=bot_info['network'], volumes=volumes, labels=labels, ports=ports, restart_policy=restart_policy, detach=True)
             await message.edit(embeds=[self.container_embed(bot, "Pull Container", "Stopping: :white_check_mark"
@@ -203,5 +202,5 @@ class Watchman(interactions.Extension):
                                                                                  "container.\n```" + str(err) +
                                                           "```", 0x21304a)])
             
-def setup(client, conf=None):
-    Watchman(client, conf)
+def setup(client):
+    Watchman(client)
