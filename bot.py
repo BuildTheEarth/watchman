@@ -46,11 +46,16 @@ class Watchman(interactions.Extension):
 
     def command_name(self, name):
         return "`" + config.prefix + name + "` "
-    
-    #interactions.listen()
-    #async def log(self, ctx: interactions.InteractionCreate):
-        #print(f'[{ctx.guild.name}] {ctx.author.name} ran \'{ctx.data.options[0].name}\' command.')
 
+    @interactions.listen()
+    async def on_error(error: interactions.api.events.Error):
+        embed = interactions.Embed(title="Watchman Error", description=f"```\n{error.source}\n{error.error}\n```", color=0xFF0000)
+        await bot.get_channel(config.error_channel).send(embeds=[embed])
+        
+    @interactions.listen()
+    async def interaction_create(ctx: interactions.api.events.InteractionCreate):
+        embed = interactions.Embed(description=f'[{ctx.guild.name}] {ctx.author.name} ran \'{ctx.data.options[0].name}\' command.', color=0xFF0000)
+        await bot.get_channel(config.error_channel).send(embeds=[embed])
 
     @base.subcommand(sub_cmd_name="help", sub_cmd_description=generic_reason)
     @interactions.check(config.hasPermsAsync)
