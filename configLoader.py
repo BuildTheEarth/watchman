@@ -11,6 +11,7 @@ class Config:
         self.prefix = self.config_file["prefix"]
         self.roles = self.config_file["roles"]
         self.users = self.config_file["users"]
+        self.error_channel = self.config_file["error_channel"]
 
     def listBots(self):
         return list(self.bots.keys())
