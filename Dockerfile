@@ -6,4 +6,4 @@ COPY . ./
 
 RUN pip install -r requirements.txt
 
-CMD ["python", "watchman.py"]
+CMD ["python", "-u", "watchman.py"]
