@@ -174,7 +174,8 @@ class Watchman(interactions.Extension):
             await message.edit(embeds=[self.container_embed(bot, "Pull Container", "Stopping: :white_check_mark"
                                                                                  ":\nPulling: :hourglass:\nStarting: "
                                                                                  ":black_small_square:", 0x21304a)])
-            self.client.images.pull(repository=image, tag="latest")
+            real_tag = bot_info['tag'] if "tag" in bot_info else "latest"
+            self.client.images.pull(repository=image, tag=real_tag)
             await message.edit(embeds=[self.container_embed(bot, "Pull Container", "Stopping: :white_check_mark"
                                                                                  ":\nPulling: "
                                                                                  ":white_check_mark:\nStarting: "
