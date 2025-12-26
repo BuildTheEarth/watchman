@@ -175,6 +175,8 @@ class Watchman(interactions.Extension):
                                                                                  ":\nPulling: :hourglass:\nStarting: "
                                                                                  ":black_small_square:", 0x21304a)])
             real_tag = bot_info['tag'] if "tag" in bot_info else "latest"
+            print(bot_info)
+            print(real_tag)
             self.client.images.pull(repository=image, tag=real_tag)
             await message.edit(embeds=[self.container_embed(bot, "Pull Container", "Stopping: :white_check_mark"
                                                                                  ":\nPulling: "
@@ -196,7 +198,7 @@ class Watchman(interactions.Extension):
             labels = {
                 "io.portainer.accesscontrol.teams": config.bot_group
             }
-            self.client.containers.run(name=bot, image=image, network=bot_info['network'], volumes=volumes, labels=labels, ports=ports, restart_policy=restart_policy, detach=True)
+            self.client.containers.run(name=bot, image=image+":"+real_tag, network=bot_info['network'], volumes=volumes, labels=labels, ports=ports, restart_policy=restart_policy, detach=True)
             await message.edit(embeds=[self.container_embed(bot, "Pull Container", "Stopping: :white_check_mark"
                                                                                  ":\nPulling: "
                                                                                  ":white_check_mark:\nStarting: "
