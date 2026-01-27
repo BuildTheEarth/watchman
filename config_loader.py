@@ -29,7 +29,7 @@ class Config:
         return False
 
     async def has_perms_async(self, ctx):
-        return has_perms_base(ctx) or has_perms_container(ctx)
+        return self.has_perms_base(ctx) or self.has_perms_container(ctx)
 
     def check_bot_specific_perms(self, ctx, bot_info):
         if self.has_perms_base(ctx):
