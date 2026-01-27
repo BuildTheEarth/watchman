@@ -4,7 +4,7 @@ import interactions
 
 class Config:
     def __init__(self, config_file):
-        self.config_file = json.load(open(config_file))
+        self.config_file = json.load(open(config_file, encoding="utf-8-sig"))
         self.token = self.config_file["token"]
         self.bot_group = self.config_file["botGroup"]
         self.bots = self.config_file["bots"]
