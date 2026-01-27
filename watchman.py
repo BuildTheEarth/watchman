@@ -1,5 +1,5 @@
 import interactions
-from configLoader import Config
+from config_loader import Config
 
 splash = """
  __          __   _       _                           

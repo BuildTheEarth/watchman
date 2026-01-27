@@ -1,6 +1,8 @@
 # Watchman
 
-Our internal project for controlling our bots, the config is fairly self documenting, just check out `_config.json`
+Our internal project for managing docker containers via Discord.
 
-If you use the containerized version, make sure to mount the docker sock!
+For the config, just check out `_config.json`! It's quite self-documenting and includes two example bots.
+
+If you use the containerized version, make sure to mount `/var/run/docker.sock`!
 
