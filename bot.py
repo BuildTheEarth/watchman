@@ -17,6 +17,7 @@ generic_reason = "This is an extremely confidential bot for confidential purpose
 
 base = interactions.SlashCommand(name="wm", description=generic_reason)
 config = Config("config.json")
+bot_option = interactions.slash_str_option("bot", True, False, None, None, None, "container")
 
 def no_container_embed():
     return interactions.Embed(title="Error", description="No container found. Please specify a valid container.",
@@ -50,15 +51,15 @@ class Watchman(interactions.Extension):
     def command_name(self, name):
         return "`" + config.prefix + name + "` "
 
-    @interactions.listen(interactions.api.events.CommandError)
-    async def on_command_error(self, error: interactions.api.events.CommandError):
+    @interactions.listen(interactions.api.events.Error)
+    async def on_error(self, error: interactions.api.events.Error):
         embed = interactions.Embed(title="Watchman Error", description=f"```\n{error.source}\n{error.error}\n```", color=0xFF0000)
-        await bot.get_channel(config.error_channel).send(embeds=[embed])
+        await bot.fetch_channel(config.error_channel).send(embeds=[embed])
         
     @interactions.listen(interactions.api.events.InteractionCreate)
     async def on_interaction_create(self, ctx: interactions.api.events.InteractionCreate):
         embed = interactions.Embed(description=f'[{ctx.guild.name}] {ctx.author.name} ran \'{ctx.data.options[0].name}\' command.', color=0xFF0000)
-        await bot.get_channel(config.error_channel).send(embeds=[embed])
+        await bot.fetch_channel(config.error_channel).send(embeds=[embed])
 
     @base.subcommand(sub_cmd_name="help", sub_cmd_description=generic_reason)
     @interactions.check(config.has_perms_async)
@@ -103,7 +104,7 @@ class Watchman(interactions.Extension):
 
     @base.subcommand(sub_cmd_name="start", sub_cmd_description=generic_reason)
     @interactions.check(config.has_perms_async)
-    async def start(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
+    async def start(self, ctx: interactions.SlashContext, bot: bot_option):
         # Starts a bot by its container name
         bot_info = config.get_bot(bot)
         container = self.fetch_container(bot)
@@ -120,7 +121,7 @@ class Watchman(interactions.Extension):
 
     @base.subcommand(sub_cmd_name="stop", sub_cmd_description=generic_reason)
     @interactions.check(config.has_perms_async)
-    async def stop(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
+    async def stop(self, ctx: interactions.SlashContext, bot: bot_option):
         # Stops a bot by its container name
         bot_info = config.get_bot(bot)
         container = self.fetch_container(bot)
@@ -137,7 +138,7 @@ class Watchman(interactions.Extension):
 
     @base.subcommand(sub_cmd_name="kill", sub_cmd_description=generic_reason)
     @interactions.check(config.has_perms_async)
-    async def kill(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
+    async def kill(self, ctx: interactions.SlashContext, bot: bot_option):
         # Kills a bot by its container name
         bot_info = config.get_bot(bot)
         container = self.fetch_container(bot)
@@ -154,7 +155,7 @@ class Watchman(interactions.Extension):
 
     @base.subcommand(sub_cmd_name="restart", sub_cmd_description=generic_reason)
     @interactions.check(config.has_perms_async)
-    async def restart(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
+    async def restart(self, ctx: interactions.SlashContext, bot: bot_option):
         # Restarts a bot by its container name
         bot_info = config.get_bot(bot)
         container = self.fetch_container(bot)
@@ -172,7 +173,7 @@ class Watchman(interactions.Extension):
 
     @base.subcommand(sub_cmd_name="pull", sub_cmd_description=generic_reason)
     @interactions.check(config.has_perms_async)
-    async def pull(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
+    async def pull(self, ctx: interactions.SlashContext, bot: bot_option):
         # Pulls any changes from the registry, and creates a new container
         bot_info = config.get_bot(bot)
         if not bot_info:
