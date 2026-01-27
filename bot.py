@@ -50,13 +50,13 @@ class Watchman(interactions.Extension):
     def command_name(self, name):
         return "`" + config.prefix + name + "` "
 
-    @interactions.listen()
-    async def on_error(error: interactions.api.events.Error):
+    @interactions.listen(interactions.api.events.CommandError)
+    async def on_command_error(self, error: interactions.api.events.CommandError):
         embed = interactions.Embed(title="Watchman Error", description=f"```\n{error.source}\n{error.error}\n```", color=0xFF0000)
         await bot.get_channel(config.error_channel).send(embeds=[embed])
         
-    @interactions.listen()
-    async def interaction_create(ctx: interactions.api.events.InteractionCreate):
+    @interactions.listen(interactions.api.events.InteractionCreate)
+    async def on_interaction_create(self, ctx: interactions.api.events.InteractionCreate):
         embed = interactions.Embed(description=f'[{ctx.guild.name}] {ctx.author.name} ran \'{ctx.data.options[0].name}\' command.', color=0xFF0000)
         await bot.get_channel(config.error_channel).send(embeds=[embed])
 
@@ -90,7 +90,7 @@ class Watchman(interactions.Extension):
     @interactions.check(config.has_perms_async)
     async def status(self, ctx: interactions.SlashContext):
         # Displays current status of bot containers
-        embed = interactions.Embed(title="Bot Status", description="", color=0x21304a)
+        embed = interactions.Embed(title="Container Status", description="", color=0x21304a)
         for b in config.list_bots():
             container = self.fetch_container(b)
             if container:
@@ -116,7 +116,7 @@ class Watchman(interactions.Extension):
         message = await ctx.send(
             embeds=[self.container_embed(bot, "Start Container", "Starting...", 0x21304a)])
         container.start()
-        await message.edit(embeds=[self.container_embed(bot, "Start Container", "Successfully started bot.", 0x00ff00)])
+        await message.edit(embeds=[self.container_embed(bot, "Start Container", "Successfully started container.", 0x00ff00)])
 
     @base.subcommand(sub_cmd_name="stop", sub_cmd_description=generic_reason)
     @interactions.check(config.has_perms_async)
@@ -133,7 +133,7 @@ class Watchman(interactions.Extension):
         message = await ctx.send(
             embeds=[self.container_embed(bot, "Stop Container", "Stopping...", 0x21304a)])
         container.stop()
-        await message.edit(embeds=[self.container_embed(bot, "Stop Container", "Successfully stopped bot.", 0x00ff00)])
+        await message.edit(embeds=[self.container_embed(bot, "Stop Container", "Successfully stopped container.", 0x00ff00)])
 
     @base.subcommand(sub_cmd_name="kill", sub_cmd_description=generic_reason)
     @interactions.check(config.has_perms_async)
@@ -150,7 +150,7 @@ class Watchman(interactions.Extension):
         message = await ctx.send(
             embeds=[self.container_embed(bot, "Kill Container", "Killing...", 0x21304a)])
         container.kill()
-        await message.edit(embeds=[self.container_embed(bot, "Kill Container", "Successfully killed bot.", 0x00ff00)])
+        await message.edit(embeds=[self.container_embed(bot, "Kill Container", "Successfully killed container.", 0x00ff00)])
 
     @base.subcommand(sub_cmd_name="restart", sub_cmd_description=generic_reason)
     @interactions.check(config.has_perms_async)

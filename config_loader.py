@@ -25,7 +25,7 @@ class Config:
     def has_perms_container(self, ctx):
         for bot in self.bots:
             if 'users' in bot:
-                return str(ctx.author.id) in bot.users
+                return str(ctx.author.id) in bot['users']
         return False
 
     async def has_perms_async(self, ctx):
@@ -35,6 +35,6 @@ class Config:
         if self.has_perms_base(ctx):
             return True
         elif 'users' in bot_info:
-            if str(ctx.author.id) in bot_info.users:
+            if str(ctx.author.id) in bot_info['users']:
                 return True
         return False

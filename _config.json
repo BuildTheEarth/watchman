@@ -34,5 +34,6 @@
     "users": [
         "user1id",
         "user2id"
-    ]
+    ],
+    "error_channel": "watchman_log"
 }
