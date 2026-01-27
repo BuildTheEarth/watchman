@@ -1,7 +1,7 @@
 import interactions
 import docker
 import interactions
-from configLoader import Config
+from config_loader import Config
 
 status_dict = {
     "created": ":white_circle: Created",
@@ -15,13 +15,16 @@ status_dict = {
 }
 generic_reason = "This is an extremely confidential bot for confidential purposes, scram."
 
+base = interactions.SlashCommand(name="wm", description=generic_reason)
+config = Config("config.json")
 
 def no_container_embed():
     return interactions.Embed(title="Error", description="No container found. Please specify a valid container.",
                          color=0xff0000)
 
-base = interactions.SlashCommand(name="wm", description=generic_reason)
-config = Config("config.json")
+def no_perms_embed():
+    return interactions.Embed(title="Error", description="No permissions for this container. Please specify a container you have permissions for.",
+                         color=0xff0000)   
 
 class Watchman(interactions.Extension):
 
@@ -33,7 +36,7 @@ class Watchman(interactions.Extension):
         if name is None:
             return None
         for container in self.client.containers.list(all=True):
-            if container.name == name and name in config.listBots():
+            if container.name == name and name in config.list_bots():
                 return container
         return None
 
@@ -41,7 +44,7 @@ class Watchman(interactions.Extension):
         embed = interactions.Embed(
             title=title, description=description, color=color)
         embed.set_author(
-            name=container, icon_url=config.getBot(container)['icon'])
+            name=container, icon_url=config.get_bot(container)['icon'])
         return embed
 
     def command_name(self, name):
@@ -58,7 +61,7 @@ class Watchman(interactions.Extension):
         await bot.get_channel(config.error_channel).send(embeds=[embed])
 
     @base.subcommand(sub_cmd_name="help", sub_cmd_description=generic_reason)
-    @interactions.check(config.hasPermsAsync)
+    @interactions.check(config.has_perms_async)
     async def help(self, ctx: interactions.SlashContext):
         # Shows all commands for watchman
 
@@ -73,10 +76,9 @@ class Watchman(interactions.Extension):
         return await ctx.send(embeds=[embed])
 
     @base.subcommand(sub_cmd_name="info", sub_cmd_description=generic_reason)
-    @interactions.check(config.hasPermsAsync)
+    @interactions.check(config.has_perms_async)
     async def info(self, ctx: interactions.SlashContext):
         # Shows info for watchman host machine
-
         embed = interactions.Embed(title="Docker Info", description="", color=0x21304a)
         version = self.client.version()
         embed.add_field(name="Platform", value=version['Platform']['Name'], inline=False)
@@ -85,11 +87,11 @@ class Watchman(interactions.Extension):
         return await ctx.send(embeds=[embed])
 
     @base.subcommand(sub_cmd_name="status", sub_cmd_description=generic_reason)
-    @interactions.check(config.hasPermsAsync)
+    @interactions.check(config.has_perms_async)
     async def status(self, ctx: interactions.SlashContext):
         # Displays current status of bot containers
         embed = interactions.Embed(title="Bot Status", description="", color=0x21304a)
-        for b in config.listBots():
+        for b in config.list_bots():
             container = self.fetch_container(b)
             if container:
                 desc = status_dict[container.status] + "\n\n"
@@ -100,12 +102,16 @@ class Watchman(interactions.Extension):
         return await ctx.send(embeds=[embed])
 
     @base.subcommand(sub_cmd_name="start", sub_cmd_description=generic_reason)
-    @interactions.check(config.hasPermsAsync)
+    @interactions.check(config.has_perms_async)
     async def start(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Starts a bot by its container name
+        bot_info = config.get_bot(bot)
         container = self.fetch_container(bot)
-        if not container:
+        if not container or not bot_info:
             return await ctx.send(embeds=[no_container_embed()])
+
+        if not config.check_bot_specific_perms(ctx, bot_info):
+            return await ctx.send(embeds=[no_perms_embed()])
 
         message = await ctx.send(
             embeds=[self.container_embed(bot, "Start Container", "Starting...", 0x21304a)])
@@ -113,12 +119,16 @@ class Watchman(interactions.Extension):
         await message.edit(embeds=[self.container_embed(bot, "Start Container", "Successfully started bot.", 0x00ff00)])
 
     @base.subcommand(sub_cmd_name="stop", sub_cmd_description=generic_reason)
-    @interactions.check(config.hasPermsAsync)
+    @interactions.check(config.has_perms_async)
     async def stop(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Stops a bot by its container name
+        bot_info = config.get_bot(bot)
         container = self.fetch_container(bot)
-        if not container:
+        if not container or not bot_info:
             return await ctx.send(embeds=[no_container_embed()])
+
+        if not config.check_bot_specific_perms(ctx, bot_info):
+            return await ctx.send(embeds=[no_perms_embed()])
 
         message = await ctx.send(
             embeds=[self.container_embed(bot, "Stop Container", "Stopping...", 0x21304a)])
@@ -126,12 +136,16 @@ class Watchman(interactions.Extension):
         await message.edit(embeds=[self.container_embed(bot, "Stop Container", "Successfully stopped bot.", 0x00ff00)])
 
     @base.subcommand(sub_cmd_name="kill", sub_cmd_description=generic_reason)
-    @interactions.check(config.hasPermsAsync)
+    @interactions.check(config.has_perms_async)
     async def kill(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Kills a bot by its container name
+        bot_info = config.get_bot(bot)
         container = self.fetch_container(bot)
-        if not container:
+        if not container or not bot_info:
             return await ctx.send(embeds=[no_container_embed()])
+
+        if not config.check_bot_specific_perms(ctx, bot_info):
+            return await ctx.send(embeds=[no_perms_embed()])
 
         message = await ctx.send(
             embeds=[self.container_embed(bot, "Kill Container", "Killing...", 0x21304a)])
@@ -139,12 +153,16 @@ class Watchman(interactions.Extension):
         await message.edit(embeds=[self.container_embed(bot, "Kill Container", "Successfully killed bot.", 0x00ff00)])
 
     @base.subcommand(sub_cmd_name="restart", sub_cmd_description=generic_reason)
-    @interactions.check(config.hasPermsAsync)
+    @interactions.check(config.has_perms_async)
     async def restart(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Restarts a bot by its container name
+        bot_info = config.get_bot(bot)
         container = self.fetch_container(bot)
-        if not container:
+        if not container or not bot_info:
             return await ctx.send(embeds=[no_container_embed()])
+
+        if not config.check_bot_specific_perms(ctx, bot_info):
+            return await ctx.send(embeds=[no_perms_embed()])
 
         message = await ctx.send(
             embeds=[self.container_embed(bot, "Restart Container", "Restarting...", 0x21304a)])
@@ -153,12 +171,15 @@ class Watchman(interactions.Extension):
             embeds=[self.container_embed(bot, "Restart Container", "Successfully restarted bot.", 0x00ff00)])
 
     @base.subcommand(sub_cmd_name="pull", sub_cmd_description=generic_reason)
-    @interactions.check(config.hasPermsAsync)
+    @interactions.check(config.has_perms_async)
     async def pull(self, ctx: interactions.SlashContext, bot: interactions.slash_str_option("bot")):
         # Pulls any changes from the registry, and creates a new container
-        bot_info = config.getBot(bot)
-        if bot_info is None:
+        bot_info = config.get_bot(bot)
+        if not bot_info:
             return await ctx.send(embeds=[no_container_embed()])
+        
+        if not config.check_bot_specific_perms(ctx, bot_info):
+            return await ctx.send(embeds=[no_perms_embed()])
 
         container = self.fetch_container(bot)
         image = bot_info['image']
