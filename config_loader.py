@@ -32,7 +32,7 @@ class Config:
         return has_perms_base(ctx) or has_perms_container(ctx)
 
     def check_bot_specific_perms(self, ctx, bot_info):
-        if self.hasPermsBase(ctx):
+        if self.has_perms_base(ctx):
             return True
         elif 'users' in bot_info:
             if str(ctx.author.id) in bot_info.users:
