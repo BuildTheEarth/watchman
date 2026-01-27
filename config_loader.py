@@ -24,6 +24,7 @@ class Config:
     
     def has_perms_container(self, ctx):
         for bot in self.bots:
+            print(self.bots)
             if 'users' in bot:
                 print(bot["users"])
                 print(str(ctx.author.id))
